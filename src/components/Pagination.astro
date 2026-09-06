@@ -1,0 +1,34 @@
+---
+import type { Page } from 'astro';
+import type { CollectionEntry } from 'astro:content';
+
+interface Props {
+  page: Page<CollectionEntry<'posts'>>;
+}
+
+const { page } = Astro.props;
+---
+
+{
+  page.lastPage > 1 && (
+    <nav aria-label="Paginación" class="mt-8 flex items-center justify-between border-t border-subtle pt-6 text-sm">
+      {page.url.prev ? (
+        <a href={page.url.prev} class="text-accent-600 hover:underline dark:text-accent-400">
+          ← Anteriores
+        </a>
+      ) : (
+        <span />
+      )}
+      <span class="text-fg-muted">
+        Página {page.currentPage} de {page.lastPage}
+      </span>
+      {page.url.next ? (
+        <a href={page.url.next} class="text-accent-600 hover:underline dark:text-accent-400">
+          Siguientes →
+        </a>
+      ) : (
+        <span />
+      )}
+    </nav>
+  )
+}

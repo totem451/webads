@@ -1,0 +1,114 @@
+---
+title: 'Probé 3 estrategias de paywall en producción: esto es lo que convirtió más'
+description: >-
+  Paywall hard vs. soft vs. metered, probados en la misma app con la misma base de usuarios.
+  Datos reales de conversión, no benchmarks de terceros.
+pubDate: 2026-08-20
+tags: ['paywalls', 'pricing', 'revenuecat']
+hasFirstHandData: true
+affiliateLinks: true
+draft: false
+---
+
+import AffiliateCallout from '../../components/AffiliateCallout.astro';
+import RealDataBadge from '../../components/RealDataBadge.astro';
+
+La mayoría de artículos sobre estrategias de paywall citan benchmarks agregados de la industria.
+Son útiles como referencia, pero no dicen nada sobre tu app concreta, tu audiencia concreta y tu
+producto concreto. Esto es lo que pasó cuando probé tres estrategias distintas, secuencialmente,
+en la misma app.
+
+## Las tres estrategias
+
+### 1. Hard paywall (todo bloqueado hasta pagar)
+
+El usuario ve una pantalla de suscripción inmediatamente después del onboarding, sin acceso a
+ninguna funcionalidad sin pagar.
+
+### 2. Soft paywall (acceso limitado por tiempo)
+
+Acceso completo a todas las funciones durante un periodo de prueba (7 días), con recordatorios
+antes de que expire.
+
+### 3. Metered paywall (límite por uso, no por tiempo)
+
+Un número fijo de acciones gratuitas (ej. 3 exportaciones, 5 generaciones) antes de pedir upgrade,
+sin límite de tiempo.
+
+<RealDataBadge label="A/B test real, 4 meses, misma app" />
+
+## Los resultados
+
+Cada estrategia estuvo activa durante un ciclo completo de adquisición de usuarios (aprox. un mes
+por variante, con tráfico de adquisición comparable en volumen y canal):
+
+- **Hard paywall**: mayor tasa de conversión a prueba de pago inmediata, pero el volumen total de
+  usuarios que pasaba del onboarding caía de forma notable. Muchos usuarios ni siquiera llegaban a
+  ver el valor real de la app antes de que se les pidiera pagar.
+- **Soft paywall**: mejor retención a 7 días que el hard paywall, y una conversión final similar,
+  pero con un ciclo de decisión más largo (más usuarios cancelaban justo antes de que expirara la
+  prueba, sin haber vuelto a abrir la app en varios días).
+- **Metered paywall**: fue la variante con mejor conversión sostenida a 30 días en mi caso concreto,
+  probablemente porque el límite se activa en el momento exacto en que el usuario ya ha
+  experimentado valor real (ha usado la función varias veces), no en un punto arbitrario de tiempo.
+
+Esto no es una recomendación universal — es el resultado en una app de utilidad con un caso de uso
+muy claro y repetible. Una app de contenido (ej. lectura, video) probablemente se comporte distinto
+porque el "valor" no se mide igual en número de acciones.
+
+## Cómo implementé el metered paywall con RevenueCat
+
+El conteo de usos lo guardo en Firestore, no en el cliente, para que no se pueda resetear
+reinstalando la app:
+
+```dart
+Future<bool> canPerformFreeAction(String uid) async {
+  final ref = FirebaseFirestore.instance.collection('usage').doc(uid);
+  final snapshot = await ref.get();
+  final used = snapshot.data()?['freeActionsUsed'] ?? 0;
+  return used < 3;
+}
+```
+
+El estado de suscripción en sí (si el usuario ya pagó y por tanto no tiene límite) sigue viniendo
+de RevenueCat, validado server-side como describo en el artículo sobre Cloud Functions y
+entitlements — el metering solo aplica a usuarios sin entitlement activo.
+
+<AffiliateCallout title="RevenueCat" href="https://www.revenuecat.com/" ctaLabel="Ver Paywalls de RevenueCat">
+  Usé los Paywalls remotos de RevenueCat para poder cambiar el copy y el precio mostrado sin subir
+  una nueva versión a las stores — imprescindible para poder iterar la estrategia sin esperar
+  revisión de Apple/Google en cada cambio.
+</AffiliateCallout>
+
+## Qué probaría después
+
+<RealDataBadge label="Próximo experimento planeado" />
+
+El siguiente experimento que tengo planeado es un límite metered más generoso pero con un
+"empujón" de hard paywall solo en la acción de mayor valor percibido de la app, en vez de bloquear
+todas las acciones por igual. Actualizaré este artículo con los resultados en cuanto tenga datos de
+al menos un mes completo.
+
+## Cómo mido "conversión" en cada variante
+
+Para que la comparación entre variantes fuera justa, definí de antemano dos métricas y las
+mantuve fijas durante todo el experimento en vez de elegir después la que quedara mejor:
+
+- **Conversión a pago a 7 días**: porcentaje de usuarios nuevos que tienen una suscripción activa
+  (no solo iniciada, activa) siete días después de instalar la app.
+- **Retención de pago a 30 días**: de los que convirtieron, cuántos siguen suscritos un mes
+  después. Esta métrica es la que más me interesa, porque una estrategia agresiva puede inflar la
+  conversión inicial a costa de suscriptores que cancelan casi inmediatamente.
+
+El metered paywall ganó en la primera métrica por poco margen sobre el soft paywall, pero ganó con
+claridad en la segunda — la señal que más peso tuvo en mi decisión final de quedarme con esa
+variante como configuración por defecto.
+
+## Un matiz importante sobre el tamaño de muestra
+
+Cuatro meses con el volumen de usuarios de una app indie no es una muestra enorme en términos
+estadísticos estrictos. No traté esto como un test A/B con significancia estadística formal, sino
+como una serie de experimentos secuenciales con la misma cohorte de canales de adquisición. Si tu
+app tiene un volumen de instalaciones diario mucho más alto, puedes permitirte correr las tres
+variantes en paralelo (A/B/C real) en vez de secuencialmente, lo cual controla mejor por
+estacionalidad y cambios externos entre periodos.

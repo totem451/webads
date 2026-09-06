@@ -1,0 +1,20 @@
+---
+import { SITE_TITLE, SOCIAL_LINKS } from '../consts';
+
+const year = new Date().getFullYear();
+---
+
+<footer class="border-t border-subtle bg-surface">
+  <div class="mx-auto max-w-4xl px-4 py-8 text-sm text-fg-muted">
+    <div class="flex flex-wrap items-center justify-between gap-4">
+      <p>&copy; {year} {SITE_TITLE}</p>
+      <nav class="flex flex-wrap gap-4">
+        <a href="/disclosure" class="hover:text-fg">Divulgación de afiliados</a>
+        <a href="/privacy" class="hover:text-fg">Privacidad</a>
+        <a href="/rss.xml" class="hover:text-fg">RSS</a>
+        <a href={SOCIAL_LINKS.github} class="hover:text-fg" rel="me noopener noreferrer">GitHub</a>
+        <a href={SOCIAL_LINKS.twitter} class="hover:text-fg" rel="me noopener noreferrer">Twitter/X</a>
+      </nav>
+    </div>
+  </div>
+</footer>

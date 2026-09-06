@@ -1,0 +1,59 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { SITE_TITLE } from '../consts';
+---
+
+<BaseLayout
+  title="Política de privacidad"
+  description="Qué datos se recopilan en este sitio, con qué finalidad y qué derechos tienes."
+  path="/privacy"
+  breadcrumbs={[
+    { name: 'Inicio', path: '/' },
+    { name: 'Privacidad', path: '/privacy' }
+  ]}
+>
+  <article class="prose prose-post dark:prose-invert mx-auto max-w-4xl px-4 py-12">
+    <h1>Política de privacidad</h1>
+    <p>
+      Última actualización: <!-- TODO: fecha de última revisión -->.
+    </p>
+
+    <p>
+      Esta política describe qué información se recopila al visitar {SITE_TITLE}, con qué
+      finalidad se usa y qué opciones tienes al respecto.
+      <!-- TODO: revisar y ajustar con asesoría legal antes de publicar -->
+    </p>
+
+    <h2>Datos que se recopilan</h2>
+    <ul>
+      <li>
+        <strong>Analítica:</strong> métricas de tráfico agregadas (páginas vistas, origen del
+        tráfico, tipo de dispositivo) mediante herramientas de analítica web.
+        <!-- TODO: nombrar la herramienta concreta (ej. Cloudflare Web Analytics, Plausible, GA4) -->
+      </li>
+      <li>
+        <strong>Publicidad:</strong> si este sitio muestra anuncios (ej. Google AdSense), terceros
+        pueden usar cookies para mostrar anuncios personalizados según tu actividad en este y otros
+        sitios.
+      </li>
+      <li>
+        <strong>Cookies técnicas:</strong> preferencia de tema claro/oscuro, guardada localmente en
+        tu navegador (localStorage), nunca enviada a un servidor.
+      </li>
+    </ul>
+
+    <h2>Enlaces de afiliado</h2>
+    <p>
+      Algunos enlaces de este sitio son de afiliado. Consulta la
+      <a href="/disclosure">página de divulgación de afiliados</a> para más detalles.
+    </p>
+
+    <h2>Tus derechos</h2>
+    <p>
+      Puedes deshabilitar las cookies de terceros desde la configuración de tu navegador o mediante
+      herramientas de bloqueo de anuncios/rastreo. Para cualquier consulta sobre tus datos, puedes
+      contactarme directamente.
+      <!-- TODO: añadir email/formulario de contacto real y, si aplica, referencia a RGPD/LOPDGDD -->
+    </p>
+  </article>
+</BaseLayout>

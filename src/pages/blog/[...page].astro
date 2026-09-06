@@ -1,0 +1,47 @@
+---
+import type { GetStaticPaths } from 'astro';
+import { getCollection } from 'astro:content';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import PostCard from '../../components/PostCard.astro';
+import Pagination from '../../components/Pagination.astro';
+import TagCloud from '../../components/TagCloud.astro';
+import { POSTS_PER_PAGE } from '../../consts';
+
+export const getStaticPaths = (async ({ paginate }) => {
+  const posts = await getCollection('posts', ({ data }) => !data.draft);
+  const sorted = posts.sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf());
+  return paginate(sorted, { pageSize: POSTS_PER_PAGE });
+}) satisfies GetStaticPaths;
+
+const { page } = Astro.props;
+const allPosts = await getCollection('posts', ({ data }) => !data.draft);
+---
+
+<BaseLayout
+  title="Blog"
+  description="Todos los artículos sobre monetización y arquitectura de apps Flutter."
+  path="/blog"
+  breadcrumbs={[
+    { name: 'Inicio', path: '/' },
+    { name: 'Blog', path: '/blog' }
+  ]}
+>
+  <section class="mx-auto max-w-4xl px-4 py-12">
+    <h1 class="font-mono text-3xl font-bold text-fg">Blog</h1>
+    <div class="mt-4">
+      <TagCloud posts={allPosts} />
+    </div>
+
+    <div class="mt-8">
+      {page.data.map((post) => <PostCard post={post} />)}
+    </div>
+
+    {
+      page.data.length === 0 && (
+        <p class="py-8 text-sm text-fg-muted">Todavía no hay artículos publicados.</p>
+      )
+    }
+
+    <Pagination page={page} />
+  </section>
+</BaseLayout>

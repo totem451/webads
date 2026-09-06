@@ -1,0 +1,43 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { AUTHOR_NAME, AUTHOR_BIO } from '../consts';
+---
+
+<BaseLayout
+  title="Sobre mí"
+  description="Quién escribe este blog y por qué: experiencia real construyendo y monetizando apps Flutter en producción."
+  path="/about"
+  breadcrumbs={[
+    { name: 'Inicio', path: '/' },
+    { name: 'Sobre mí', path: '/about' }
+  ]}
+>
+  <article class="prose prose-post dark:prose-invert mx-auto max-w-4xl px-4 py-12">
+    <h1>Sobre mí</h1>
+    <p>{AUTHOR_BIO}</p>
+
+    <h2>Por qué este blog</h2>
+    <p>
+      <!-- TODO: reemplazar por tu historia real -->
+      Escribo sobre lo que implemento yo mismo en mis propias apps Flutter en producción:
+      integración de RevenueCat, funciones serverless en Firebase Cloud Functions, decisiones de
+      arquitectura Clean/feature-first y experimentos reales de pricing y paywalls. Nada de este
+      contenido es teoría genérica de curso — cada artículo con el badge "Probado en producción"
+      viene de una app real con usuarios reales.
+    </p>
+
+    <h2>Cómo se produce el contenido</h2>
+    <p>
+      Uso herramientas de IA como apoyo de redacción, pero cada artículo pasa por revisión humana
+      obligatoria antes de publicarse: verifico cada dato técnico, cada snippet de código y cada
+      cifra contra mi propia experiencia antes de quitar el estado de borrador.
+    </p>
+
+    <h2>Stack y experiencia</h2>
+    <ul>
+      <li>Flutter/Dart en producción, arquitectura Clean/feature-first.</li>
+      <li>Monetización con RevenueCat: paywalls, entitlements, pricing A/B.</li>
+      <li>Firebase (Auth, Firestore, Cloud Functions) como backend serverless.</li>
+    </ul>
+  </article>
+</BaseLayout>

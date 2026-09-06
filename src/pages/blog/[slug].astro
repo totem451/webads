@@ -1,0 +1,24 @@
+---
+import type { GetStaticPaths } from 'astro';
+import { getCollection, render } from 'astro:content';
+import PostLayout from '../../layouts/PostLayout.astro';
+import { getRelatedPosts } from '../../lib/related';
+
+export const getStaticPaths = (async () => {
+  const posts = await getCollection('posts', ({ data }) => !data.draft);
+  return posts.map((post) => ({
+    params: { slug: post.id.replace(/\.mdx?$/, '') },
+    props: { post }
+  }));
+}) satisfies GetStaticPaths;
+
+const { post } = Astro.props;
+const { Content, headings } = await render(post);
+
+const allPosts = await getCollection('posts', ({ data }) => !data.draft);
+const relatedPosts = getRelatedPosts(post, allPosts);
+---
+
+<PostLayout entry={post} headings={headings} relatedPosts={relatedPosts}>
+  <Content />
+</PostLayout>

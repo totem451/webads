@@ -1,0 +1,56 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { SITE_TITLE } from '../consts';
+---
+
+<BaseLayout
+  title="Divulgación de afiliados"
+  description="Política de divulgación de enlaces de afiliado y relaciones comerciales de este blog."
+  path="/disclosure"
+  breadcrumbs={[
+    { name: 'Inicio', path: '/' },
+    { name: 'Divulgación de afiliados', path: '/disclosure' }
+  ]}
+>
+  <article class="prose prose-post dark:prose-invert mx-auto max-w-4xl px-4 py-12">
+    <h1>Divulgación de afiliados</h1>
+    <p>
+      Última actualización: <!-- TODO: fecha de última revisión -->.
+    </p>
+
+    <p>
+      {SITE_TITLE} participa en programas de afiliados de terceros (entre ellos, herramientas y
+      servicios mencionados en los artículos, como RevenueCat u otros productos del ecosistema
+      Flutter/Firebase). Esto significa que, si haces clic en algunos enlaces de este sitio y
+      posteriormente contratas o compras un producto o servicio, puedo recibir una comisión, sin
+      coste adicional para ti.
+    </p>
+
+    <h2>Cómo lo marcamos</h2>
+    <p>
+      Todo artículo que contiene enlaces de afiliado lo indica explícitamente al inicio del post, y
+      cada enlace de afiliado individual va acompañado de un aviso inline (componente
+      <code>AffiliateCallout</code>) con un enlace de vuelta a esta página.
+    </p>
+
+    <h2>Nuestro criterio editorial</h2>
+    <p>
+      Solo recomiendo herramientas y servicios que uso o he usado personalmente en producción. La
+      existencia de una comisión de afiliado nunca determina si un producto se recomienda o no: si
+      algo no me convence, lo digo explícitamente aunque tenga programa de afiliados.
+    </p>
+
+    <h2>Publicidad</h2>
+    <p>
+      Este sitio puede mostrar anuncios de terceros (ej. Google AdSense) gestionados mediante
+      cookies y tecnologías similares. Consulta la <a href="/privacy">política de privacidad</a>
+      para más detalles sobre qué datos se recopilan.
+    </p>
+
+    <h2>Contacto</h2>
+    <p>
+      Si tienes dudas sobre esta política de divulgación, puedes escribirme.
+      <!-- TODO: añadir email/formulario de contacto real -->
+    </p>
+  </article>
+</BaseLayout>

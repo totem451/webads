@@ -1,0 +1,83 @@
+---
+import '../styles/global.css';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+import Breadcrumbs from '../components/Breadcrumbs.astro';
+import { resolveSeo, breadcrumbListSchema, type BreadcrumbItem } from '../lib/seo';
+import { SITE_TITLE } from '../consts';
+
+interface Props {
+  title?: string;
+  description?: string;
+  image?: string;
+  path: string;
+  type?: 'website' | 'article';
+  /** Breadcrumbs de esta página. El primero suele ser {name: 'Inicio', path: '/'}. */
+  breadcrumbs: BreadcrumbItem[];
+  /** JSON-LD adicional (ej. Article schema en posts), se añade junto al BreadcrumbList. */
+  jsonLd?: Record<string, unknown>[];
+}
+
+const { title, description, image, path, type = 'website', breadcrumbs, jsonLd = [] } = Astro.props;
+
+const seo = resolveSeo({ title, description, image, path, type });
+const allJsonLd = [breadcrumbListSchema(breadcrumbs), ...jsonLd];
+---
+
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="sitemap" href="/sitemap-index.xml" />
+    <link rel="alternate" type="application/rss+xml" title={SITE_TITLE} href="/rss.xml" />
+
+    <title>{seo.title}</title>
+    <meta name="description" content={seo.description} />
+    <link rel="canonical" href={seo.canonicalUrl} />
+
+    <!-- Open Graph -->
+    <meta property="og:type" content={seo.type} />
+    <meta property="og:url" content={seo.canonicalUrl} />
+    <meta property="og:title" content={seo.title} />
+    <meta property="og:description" content={seo.description} />
+    <meta property="og:image" content={seo.image} />
+    <meta property="og:site_name" content={SITE_TITLE} />
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={seo.title} />
+    <meta name="twitter:description" content={seo.description} />
+    <meta name="twitter:image" content={seo.image} />
+
+    <!-- Google Search Console: reemplazar CONTENT con el código de verificación real -->
+    <meta name="google-site-verification" content="TODO-google-search-console-verification-code" />
+
+    {
+      allJsonLd.map((schema) => (
+        <script type="application/ld+json" set:html={JSON.stringify(schema)} />
+      ))
+    }
+
+    <script is:inline>
+      // Aplica el tema guardado antes del primer paint para evitar flash.
+      (function () {
+        try {
+          var stored = localStorage.getItem('theme');
+          if (stored === 'light' || stored === 'dark') {
+            document.documentElement.classList.add(stored);
+          }
+        } catch (e) {}
+      })();
+    </script>
+  </head>
+  <body class="flex min-h-screen flex-col">
+    <Header />
+    <Breadcrumbs items={breadcrumbs} />
+    <main class="flex-1">
+      <slot />
+    </main>
+    <Footer />
+  </body>
+</html>

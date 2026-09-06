@@ -1,0 +1,27 @@
+---
+import ThemeToggle from './ThemeToggle.astro';
+import { SITE_TITLE } from '../consts';
+
+const nav = [
+  { href: '/blog', label: 'Blog' },
+  { href: '/about', label: 'Sobre mí' }
+];
+---
+
+<header class="border-b border-subtle bg-surface">
+  <div class="mx-auto flex max-w-4xl items-center justify-between px-4 py-4">
+    <a href="/" class="font-mono text-lg font-bold text-fg">
+      {SITE_TITLE}
+    </a>
+    <nav class="flex items-center gap-6">
+      {
+        nav.map((item) => (
+          <a href={item.href} class="text-sm text-fg-muted transition-colors hover:text-accent-600 dark:hover:text-accent-400">
+            {item.label}
+          </a>
+        ))
+      }
+      <ThemeToggle />
+    </nav>
+  </div>
+</header>

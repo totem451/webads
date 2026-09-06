@@ -1,0 +1,37 @@
+---
+import type { TocItem } from '../lib/toc';
+
+interface Props {
+  items: TocItem[];
+}
+
+const { items } = Astro.props;
+---
+
+{
+  items.length > 0 && (
+    <nav aria-label="Tabla de contenidos" class="not-prose rounded-lg border border-subtle bg-subtle p-4 text-sm">
+      <p class="font-mono font-semibold text-fg">En este artículo</p>
+      <ul class="mt-2 space-y-1.5">
+        {items.map((item) => (
+          <li>
+            <a href={`#${item.slug}`} class="text-fg-muted hover:text-accent-600 dark:hover:text-accent-400">
+              {item.text}
+            </a>
+            {item.children.length > 0 && (
+              <ul class="mt-1.5 ml-3 space-y-1.5 border-l border-subtle pl-3">
+                {item.children.map((child) => (
+                  <li>
+                    <a href={`#${child.slug}`} class="text-fg-muted hover:text-accent-600 dark:hover:text-accent-400">
+                      {child.text}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </li>
+        ))}
+      </ul>
+    </nav>
+  )
+}

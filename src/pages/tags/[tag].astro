@@ -1,0 +1,45 @@
+---
+import type { GetStaticPaths } from 'astro';
+import { getCollection } from 'astro:content';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import PostCard from '../../components/PostCard.astro';
+import TagCloud from '../../components/TagCloud.astro';
+
+export const getStaticPaths = (async () => {
+  const posts = await getCollection('posts', ({ data }) => !data.draft);
+  const tags = new Set(posts.flatMap((post) => post.data.tags));
+  return [...tags].map((tag) => ({
+    params: { tag },
+    props: {
+      posts: posts
+        .filter((post) => post.data.tags.includes(tag))
+        .sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf())
+    }
+  }));
+}) satisfies GetStaticPaths;
+
+const { tag } = Astro.params;
+const { posts } = Astro.props;
+const allPosts = await getCollection('posts', ({ data }) => !data.draft);
+---
+
+<BaseLayout
+  title={`Artículos sobre ${tag}`}
+  description={`Todos los artículos etiquetados con #${tag}.`}
+  path={`/tags/${tag}`}
+  breadcrumbs={[
+    { name: 'Inicio', path: '/' },
+    { name: 'Blog', path: '/blog' },
+    { name: `#${tag}`, path: `/tags/${tag}` }
+  ]}
+>
+  <section class="mx-auto max-w-4xl px-4 py-12">
+    <h1 class="font-mono text-3xl font-bold text-fg">#{tag}</h1>
+    <div class="mt-4">
+      <TagCloud posts={allPosts} activeTag={tag} />
+    </div>
+    <div class="mt-8">
+      {posts.map((post) => <PostCard post={post} />)}
+    </div>
+  </section>
+</BaseLayout>

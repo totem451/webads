@@ -1,0 +1,15 @@
+---
+interface Props {
+  /** Texto del badge, ej. "Probado en producción" o "Datos reales de MiApp". */
+  label?: string;
+}
+
+const { label = 'Probado en producción' } = Astro.props;
+---
+
+<span class="not-prose inline-flex items-center gap-1.5 rounded-full border border-spark-500/30 bg-spark-500/10 px-3 py-1 text-xs font-medium text-spark-600 dark:text-spark-400">
+  <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+    <path d="M20 6 9 17l-5-5" />
+  </svg>
+  {label}
+</span>

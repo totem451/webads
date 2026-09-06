@@ -1,0 +1,32 @@
+---
+import type { CollectionEntry } from 'astro:content';
+
+interface Props {
+  posts: CollectionEntry<'posts'>[];
+}
+
+const { posts } = Astro.props;
+---
+
+{
+  posts.length > 0 && (
+    <section class="mt-12 border-t border-subtle pt-8">
+      <h2 class="font-mono text-lg font-bold text-fg">Artículos relacionados</h2>
+      <ul class="mt-4 grid gap-4 sm:grid-cols-3">
+        {posts.map((post) => {
+          const slug = post.id.replace(/\.mdx?$/, '');
+          return (
+            <li>
+              <a href={`/blog/${slug}`} class="group block rounded-lg border border-subtle p-4 transition-colors hover:border-accent-500">
+                <p class="font-mono text-sm font-semibold text-fg group-hover:text-accent-600 dark:group-hover:text-accent-400">
+                  {post.data.title}
+                </p>
+                <p class="mt-1 text-xs text-fg-muted line-clamp-2">{post.data.description}</p>
+              </a>
+            </li>
+          );
+        })}
+      </ul>
+    </section>
+  )
+}

@@ -1,0 +1,154 @@
+@import "tailwindcss";
+@import "@fontsource-variable/inter";
+@import "@fontsource-variable/jetbrains-mono";
+@plugin "@tailwindcss/typography";
+
+/* Toggle manual de dark mode: añade/quita la clase `.dark` en <html>.
+   Sin la clase, se respeta prefers-color-scheme (ver ThemeToggle.astro). */
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-sans: 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono Variable', ui-monospace, 'SFMono-Regular', monospace;
+
+  /* Acento índigo/azul — identidad "developer tool" */
+  --color-accent-50: #eef2ff;
+  --color-accent-100: #e0e7ff;
+  --color-accent-200: #c7d2fe;
+  --color-accent-300: #a5b4fc;
+  --color-accent-400: #818cf8;
+  --color-accent-500: #6366f1;
+  --color-accent-600: #4f46e5;
+  --color-accent-700: #4338ca;
+  --color-accent-800: #3730a3;
+  --color-accent-900: #312e81;
+
+  /* Segundo acento cálido (indie hacker), solo para detalles puntuales:
+     badges de "dato real", hover de tags, etc. */
+  --color-spark-400: #fb923c;
+  --color-spark-500: #f97316;
+  --color-spark-600: #ea580c;
+}
+
+:root {
+  --bg: var(--color-white);
+  --bg-subtle: var(--color-zinc-50);
+  --surface: var(--color-white);
+  --border: var(--color-zinc-200);
+  --text: var(--color-zinc-900);
+  --text-muted: var(--color-zinc-600);
+}
+
+.dark {
+  --bg: var(--color-zinc-950);
+  --bg-subtle: var(--color-zinc-900);
+  --surface: var(--color-zinc-900);
+  --border: var(--color-zinc-800);
+  --text: var(--color-zinc-50);
+  --text-muted: var(--color-zinc-400);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not(.light):not(.dark) {
+    --bg: var(--color-zinc-950);
+    --bg-subtle: var(--color-zinc-900);
+    --surface: var(--color-zinc-900);
+    --border: var(--color-zinc-800);
+    --text: var(--color-zinc-50);
+    --text-muted: var(--color-zinc-400);
+  }
+}
+
+html {
+  color-scheme: light dark;
+}
+
+html.dark {
+  color-scheme: dark;
+}
+
+html.light {
+  color-scheme: light;
+}
+
+body {
+  background-color: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+}
+
+/* Utilidades semánticas sobre los tokens de tema (evitan el color-flip
+   manual con dark: en cada componente). */
+@utility bg-surface {
+  background-color: var(--surface);
+}
+
+@utility bg-subtle {
+  background-color: var(--bg-subtle);
+}
+
+@utility text-fg {
+  color: var(--text);
+}
+
+@utility text-fg-muted {
+  color: var(--text-muted);
+}
+
+@utility border-subtle {
+  border-color: var(--border);
+}
+
+/* Tipografía de artículo: cuerpo en sans, títulos y código con presencia mono */
+.prose-post {
+  --tw-prose-body: var(--text);
+  --tw-prose-headings: var(--text);
+  --tw-prose-links: var(--color-accent-600);
+  max-width: 70ch;
+}
+
+.dark .prose-post {
+  --tw-prose-links: var(--color-accent-400);
+}
+
+.prose-post h1,
+.prose-post h2,
+.prose-post h3 {
+  font-family: var(--font-mono);
+  letter-spacing: -0.01em;
+}
+
+.prose-post code {
+  font-family: var(--font-mono);
+}
+
+/* Shiki genera colores duales (claro/oscuro) como variables inline
+   --shiki-light/--shiki-dark. Astro por defecto solo las activa vía
+   prefers-color-scheme; aquí las enlazamos también al toggle manual (.dark)
+   para que respondan igual que el resto del tema. */
+.dark .astro-code,
+.dark .astro-code span {
+  color: var(--shiki-dark) !important;
+  background-color: var(--shiki-dark-bg) !important;
+  font-style: var(--shiki-dark-font-style) !important;
+  font-weight: var(--shiki-dark-font-weight) !important;
+  text-decoration: var(--shiki-dark-text-decoration) !important;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not(.light):not(.dark) .astro-code,
+  :root:not(.light):not(.dark) .astro-code span {
+    color: var(--shiki-dark) !important;
+    background-color: var(--shiki-dark-bg) !important;
+    font-style: var(--shiki-dark-font-style) !important;
+    font-weight: var(--shiki-dark-font-weight) !important;
+    text-decoration: var(--shiki-dark-text-decoration) !important;
+  }
+}
+
+.astro-code {
+  padding: 1rem;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  line-height: 1.6;
+}

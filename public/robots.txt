@@ -1,0 +1,6 @@
+# TODO: reemplazar example.com por el dominio definitivo (debe coincidir con
+# `site` en astro.config.mjs y SITE_URL en src/consts.ts)
+User-agent: *
+Allow: /
+
+Sitemap: https://example.com/sitemap-index.xml

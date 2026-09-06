@@ -1,0 +1,47 @@
+---
+import type { CollectionEntry } from 'astro:content';
+
+interface Props {
+  posts: CollectionEntry<'posts'>[];
+  activeTag?: string;
+}
+
+const { posts, activeTag } = Astro.props;
+
+const counts = new Map<string, number>();
+for (const post of posts) {
+  for (const tag of post.data.tags) {
+    counts.set(tag, (counts.get(tag) ?? 0) + 1);
+  }
+}
+const tags = [...counts.entries()].sort((a, b) => b[1] - a[1]);
+---
+
+{
+  tags.length > 0 && (
+    <div class="flex flex-wrap gap-2">
+      <a
+        href="/blog"
+        class={`rounded-full border px-3 py-1 text-xs transition-colors ${
+          !activeTag
+            ? 'border-accent-500 bg-accent-500/10 text-accent-600 dark:text-accent-400'
+            : 'border-subtle bg-subtle text-fg-muted hover:border-accent-500'
+        }`}
+      >
+        Todos
+      </a>
+      {tags.map(([tag, count]) => (
+        <a
+          href={`/tags/${tag}`}
+          class={`rounded-full border px-3 py-1 text-xs transition-colors ${
+            activeTag === tag
+              ? 'border-accent-500 bg-accent-500/10 text-accent-600 dark:text-accent-400'
+              : 'border-subtle bg-subtle text-fg-muted hover:border-accent-500'
+          }`}
+        >
+          #{tag} <span class="text-fg-muted">({count})</span>
+        </a>
+      ))}
+    </div>
+  )
+}

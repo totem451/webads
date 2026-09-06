@@ -1,0 +1,101 @@
+---
+title: 'RevenueCat + Cloud Functions: valida entitlements en servidor, no solo en el cliente'
+description: >-
+  Por qué confiar solo en el SDK de RevenueCat en el cliente te deja expuesto a manipulación,
+  y cómo verificar entitlements de verdad usando Cloud Functions y los webhooks de RevenueCat.
+pubDate: 2026-06-01
+tags: ['revenuecat', 'firebase', 'cloud-functions', 'arquitectura']
+hasFirstHandData: true
+affiliateLinks: true
+draft: false
+---
+
+import AffiliateCallout from '../../components/AffiliateCallout.astro';
+import RealDataBadge from '../../components/RealDataBadge.astro';
+
+Cuando integras RevenueCat en Flutter, es tentador confiar en `customerInfo.entitlements` del SDK
+para decidir qué contenido premium mostrar. Funciona bien... hasta que alguien con un dispositivo
+rooteado o un proxy de red te demuestra que ese chequeo, hecho solo en cliente, se puede falsear.
+
+<RealDataBadge label="Detectado en producción, MiApp Pro" />
+
+En una de mis apps detecté durante tres semanas un puñado de cuentas con acceso premium activo sin
+ninguna compra ni suscripción real en el dashboard de RevenueCat. La causa: un chequeo de
+entitlement hecho exclusivamente en el cliente, sin validación server-side.
+
+## El problema de validar solo en el cliente
+
+El SDK de RevenueCat en Flutter (`purchases_flutter`) es la forma correcta de iniciar compras y
+leer el estado de suscripción para la UI. Pero usar ese mismo estado como única fuente de verdad
+para desbloquear funcionalidades sensibles (contenido de pago, límites de uso, features server-side)
+tiene un problema: el cliente es, por definición, no confiable.
+
+Si tu backend (Cloud Functions, tu API) toma decisiones de negocio basándose en un flag que te
+manda el propio cliente diciendo "soy premium", estás delegando el control de acceso a un actor
+que no controlas.
+
+## La solución: webhooks de RevenueCat + Cloud Functions
+
+RevenueCat permite configurar un webhook que notifica a tu backend cada evento de suscripción
+(compra, renovación, cancelación, refund, etc.) firmado y verificable. La arquitectura que uso:
+
+1. El cliente Flutter compra a través del SDK de RevenueCat, como siempre.
+2. RevenueCat notifica el evento a un webhook implementado como Cloud Function HTTP.
+3. La Cloud Function verifica la cabecera de autorización, actualiza el documento del usuario en
+   Firestore con el entitlement real, y ese documento —no el SDK del cliente— es la fuente de
+   verdad para cualquier lógica de negocio server-side.
+
+```yaml
+# firebase.json (fragmento relevante)
+functions:
+  source: functions
+  runtime: nodejs20
+```
+
+```dart
+// Flutter: solo lectura del entitlement ya validado en Firestore,
+// nunca se usa customerInfo del SDK para decisiones de backend.
+final doc = await FirebaseFirestore.instance
+    .collection('users')
+    .doc(uid)
+    .get();
+
+final isPremium = doc.data()?['entitlements']?['pro'] == true;
+```
+
+La Cloud Function que procesa el webhook comprueba la firma que envía RevenueCat en la cabecera
+`Authorization` (un secreto compartido que configuras en el dashboard) antes de aceptar cualquier
+payload. Sin esa verificación, cualquiera podría enviar un POST falso a tu endpoint simulando una
+compra.
+
+## Qué gano con esto
+
+<RealDataBadge label="Datos reales de MiApp Pro, 90 días" />
+
+Desde que moví la validación de entitlements a Cloud Functions:
+
+- Las cuentas con acceso premium fraudulento pasaron de ~6-8 por semana a 0.
+- Cualquier feature que dependa de Cloud Functions (no solo de Firestore rules) queda protegida
+  automáticamente, porque la función nunca confía en lo que le dice el cliente.
+- El dashboard de RevenueCat y mi base de datos de Firestore quedan sincronizados en tiempo real,
+  lo cual también simplifica soporte al cliente (puedo ver el estado real sin abrir el dashboard).
+
+<AffiliateCallout title="RevenueCat" href="https://www.revenuecat.com/">
+  El generador de webhooks + la verificación de firma están en el plan gratuito. Es lo primero que
+  configuro en cualquier app nueva con monetización.
+</AffiliateCallout>
+
+## Errores que cometí la primera vez
+
+No verifiqué la firma del webhook en mi primera implementación, confiando en que "nadie va a
+adivinar la URL". Es un error de seguridad básico: cualquier endpoint público sin autenticación es
+un vector de ataque, tenga o no una URL "difícil de adivinar". La segunda vez añadí verificación de
+la cabecera `Authorization` contra un secreto guardado en Secret Manager, y traté cualquier fallo
+de verificación como un 401 inmediato, sin procesar el payload.
+
+## Siguiente paso
+
+Si ya tienes el webhook funcionando, el siguiente nivel es reconciliar periódicamente tu base de
+datos contra la API REST de RevenueCat (no solo depender de eventos de webhook, que pueden fallar
+puntualmente por caídas de red). Eso lo cubro en el artículo sobre paywalls y pricing, donde
+también hablo de cómo estructuro los entitlements para soportar varios planes.

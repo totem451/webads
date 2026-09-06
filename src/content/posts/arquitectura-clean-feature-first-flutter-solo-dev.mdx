@@ -1,0 +1,139 @@
+---
+title: 'Clean Architecture feature-first en Flutter, la versión que de verdad mantengo yo solo'
+description: >-
+  La arquitectura Clean de los tutoriales asume un equipo. Esta es la versión reducida y
+  feature-first que uso en apps que mantengo en solitario, sin sacrificar testabilidad.
+pubDate: 2026-07-15
+tags: ['arquitectura', 'flutter', 'clean-architecture']
+hasFirstHandData: true
+affiliateLinks: false
+draft: false
+---
+
+import RealDataBadge from '../../components/RealDataBadge.astro';
+
+La mayoría de guías de Clean Architecture para Flutter están pensadas para equipos de varias
+personas trabajando en el mismo módulo a la vez: capas estrictas, interfaces para todo, inyección
+de dependencias exhaustiva. Como developer solo, esa fricción no se paga sola — se paga en
+velocidad de shipping.
+
+## Por qué feature-first y no layer-first
+
+La organización clásica de Clean Architecture agrupa por capa primero (`domain/`, `data/`,
+`presentation/`) y por feature después. Con un único desarrollador tocando todo el código, moverte
+entre tres carpetas de nivel superior para tocar una sola función se vuelve el principal costo de
+cambio de contexto del día a día.
+
+Mi estructura real, en producción:
+
+```
+lib/
+  features/
+    paywall/
+      domain/
+        entitlement.dart
+        paywall_repository.dart
+      data/
+        revenuecat_paywall_repository.dart
+      presentation/
+        paywall_screen.dart
+        paywall_controller.dart
+    onboarding/
+      ...
+  core/
+    network/
+    theme/
+    router/
+```
+
+Cada feature es, en la práctica, una mini-app con sus propias tres capas. `core/` solo contiene lo
+que de verdad se comparte entre features (cliente HTTP, tema, router).
+
+## Qué SÍ mantengo de Clean Architecture
+
+<RealDataBadge label="En uso en 3 apps propias" />
+
+- **Separación domain/data**: las entidades y contratos de repositorio (`domain/`) no dependen de
+  Firebase, RevenueCat, ni de ningún SDK concreto. Esto me ha salvado tiempo real cuando cambié de
+  proveedor de analítica dos veces sin tocar la capa de dominio.
+- **Un solo punto de entrada por feature**: cada feature expone un único controller/notifier que la
+  UI consume. Nunca desde un widget se llama directamente a Firestore o al SDK de RevenueCat.
+- **Tests en domain, no en widgets**: la inversión de tiempo en tests va casi entera a la capa
+  domain, donde vive la lógica de negocio real (cálculo de entitlements, reglas de pricing, etc.).
+
+## Qué SÍ recorto frente a la versión "de libro"
+
+- **No hay interfaces para todo**: si un repositorio solo tiene una implementación real (y no la
+  va a tener nunca, porque no vas a cambiar de Firebase a otro backend mañana), no creo una
+  interfaz abstracta solo por dogma. La creo cuando el segundo caso de uso aparece, no antes.
+- **Inyección de dependencias mínima**: uso `Provider`/`Riverpod` para lo que necesito componer en
+  tests o en distintas pantallas, pero no envuelvo cada clase en un contenedor de DI genérico.
+- **Sin capa de "use cases" para operaciones triviales**: un getter que expone un stream de
+  Firestore no necesita una clase `GetUserUseCase` si no encapsula ninguna regla de negocio.
+
+```dart
+// domain/entitlement.dart — sin dependencias de Firebase/RevenueCat
+class Entitlement {
+  const Entitlement({required this.isPro, required this.expiresAt});
+
+  final bool isPro;
+  final DateTime? expiresAt;
+
+  bool get isActive => isPro && (expiresAt == null || expiresAt!.isAfter(DateTime.now()));
+}
+```
+
+```kotlin
+// Si el proyecto tiene una parte nativa Android (ej. un widget de home screen),
+// aplico el mismo principio: la lógica de negocio no debe conocer Flutter ni el canal de plugin.
+class EntitlementCache(private val prefs: SharedPreferences) {
+    fun isProActive(): Boolean = prefs.getBoolean(KEY_IS_PRO, false)
+}
+```
+
+## El coste real de esta decisión
+
+<RealDataBadge label="Refactor medido en MiApp Pro" />
+
+Cuando migré mi app principal (unas 40k líneas) de una estructura layer-first a feature-first, el
+refactor completo me llevó tres días de trabajo efectivo. Desde entonces, el tiempo medio que tardo
+en añadir una feature pequeña (ej. una pantalla nueva con su propio estado) bajó de forma notable
+porque todo el código relacionado vive en una sola carpeta, no repartido en tres.
+
+## Cuándo esta estructura deja de servir
+
+Si en algún momento sumas más de un desarrollador trabajando en la misma feature en paralelo, vas
+a necesitar más disciplina en los contratos entre domain/data/presentation de la que yo mismo
+mantengo ahora mismo. Para un equipo de uno, la fricción de un contrato más laxo es menor que el
+coste de mantenerlo estrictamente.
+
+## Cómo organizo los tests con esta estructura
+
+Cada feature tiene su propia carpeta de tests que espeja la estructura de `lib/features/<nombre>/`,
+no una carpeta `test/` plana con todo mezclado:
+
+```
+test/
+  features/
+    paywall/
+      domain/
+        entitlement_test.dart
+      data/
+        revenuecat_paywall_repository_test.dart
+```
+
+La proporción de tests que escribo por capa es deliberadamente desigual: la capa `domain/` tiene
+cobertura casi total porque ahí vive la lógica de negocio que de verdad me puede romper algo en
+producción (cálculo de entitlements, reglas de pricing, validaciones). La capa `presentation/`
+tiene tests solo para los flujos críticos (compra, login), no para cada widget. La capa `data/` se
+testea sobre todo con fakes de red, no contra servicios reales, para que la suite de tests corra en
+segundos y no en minutos.
+
+## Cómo decido si algo va en `core/` o en una `feature/`
+
+La regla que aplico, después de haber organizado mal esto un par de veces: si un archivo cambia por
+una razón relacionada con una sola pantalla o flujo de negocio, va dentro de la feature
+correspondiente. Si cambia por una razón transversal (versión del cliente HTTP, tema visual, lógica
+de routing compartida entre varias features), va en `core/`. Cuando dudo, lo dejo dentro de la
+feature: es mucho más barato mover algo de una feature a `core/` cuando de verdad se repite en una
+segunda feature, que deshacer una abstracción prematura en `core/` que solo la usa un sitio.

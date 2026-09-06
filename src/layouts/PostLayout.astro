@@ -1,0 +1,96 @@
+---
+import type { CollectionEntry } from 'astro:content';
+import type { MarkdownHeading } from 'astro';
+import { Image } from 'astro:assets';
+import BaseLayout from './BaseLayout.astro';
+import TableOfContents from '../components/TableOfContents.astro';
+import RealDataBadge from '../components/RealDataBadge.astro';
+import RelatedPosts from '../components/RelatedPosts.astro';
+import TagBadge from '../components/TagBadge.astro';
+import { buildToc } from '../lib/toc';
+import { articleSchema } from '../lib/seo';
+
+interface Props {
+  entry: CollectionEntry<'posts'>;
+  headings: MarkdownHeading[];
+  relatedPosts: CollectionEntry<'posts'>[];
+}
+
+const { entry, headings, relatedPosts } = Astro.props;
+const { title, description, pubDate, updatedDate, tags, hasFirstHandData, affiliateLinks, coverImage, coverImageAlt } =
+  entry.data;
+const slug = entry.id.replace(/\.mdx?$/, '');
+const path = `/blog/${slug}`;
+
+const toc = buildToc(headings);
+
+const formattedPubDate = pubDate.toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' });
+const formattedUpdatedDate = updatedDate?.toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' });
+
+const schema = articleSchema({ title, description, path, pubDate, updatedDate, image: coverImage?.src });
+---
+
+<BaseLayout
+  title={title}
+  description={description}
+  image={coverImage?.src}
+  path={path}
+  type="article"
+  breadcrumbs={[
+    { name: 'Inicio', path: '/' },
+    { name: 'Blog', path: '/blog' },
+    { name: title, path }
+  ]}
+  jsonLd={[schema]}
+>
+  <article class="mx-auto max-w-4xl px-4 py-8">
+    <header class="mb-8">
+      <div class="flex flex-wrap items-center gap-3 text-xs text-fg-muted">
+        <time datetime={pubDate.toISOString()}>Publicado el {formattedPubDate}</time>
+        {formattedUpdatedDate && <span>· Actualizado el {formattedUpdatedDate}</span>}
+        {hasFirstHandData && <RealDataBadge />}
+      </div>
+      <h1 class="mt-3 font-mono text-3xl font-bold text-fg sm:text-4xl">{title}</h1>
+      <p class="mt-3 text-lg text-fg-muted">{description}</p>
+      <div class="mt-4 flex flex-wrap gap-2">
+        {tags.map((tag) => <TagBadge tag={tag} />)}
+      </div>
+      {
+        coverImage && (
+          <Image
+            src={coverImage}
+            alt={coverImageAlt ?? ''}
+            width={1200}
+            height={630}
+            class="mt-6 w-full rounded-lg border border-subtle object-cover"
+            loading="eager"
+          />
+        )
+      }
+      {
+        affiliateLinks && (
+          <p class="mt-4 rounded-md border border-subtle bg-subtle px-3 py-2 text-xs text-fg-muted">
+            Este artículo contiene enlaces de afiliado. Ver{' '}
+            <a href="/disclosure" class="underline hover:text-fg">
+              política de divulgación
+            </a>
+            .
+          </p>
+        )
+      }
+    </header>
+
+    <div class="grid gap-8 lg:grid-cols-[1fr_16rem]">
+      <div class="prose-post prose min-w-0 dark:prose-invert">
+        <slot />
+      </div>
+      <aside class="order-first lg:order-last">
+        <div class="lg:sticky lg:top-6">
+          <TableOfContents items={toc} />
+        </div>
+      </aside>
+    </div>
+
+    <RelatedPosts posts={relatedPosts} />
+  </article>
+</BaseLayout>
