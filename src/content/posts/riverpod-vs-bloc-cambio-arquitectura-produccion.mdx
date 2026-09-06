@@ -1,0 +1,112 @@
+---
+title: 'Riverpod vs Bloc: por qué cambié de arquitectura a mitad de un proyecto en producción'
+description: >-
+  Migré una app de Bloc a Riverpod con usuarios activos y sin pausar el desarrollo de features.
+  Esto es lo que realmente cambió, lo que no, y por qué lo haría de nuevo.
+pubDate: 2026-08-25
+tags: ['flutter', 'arquitectura', 'state-management']
+hasFirstHandData: true
+affiliateLinks: false
+draft: false
+---
+
+import RealDataBadge from '../../components/RealDataBadge.astro';
+
+Empecé mi app principal con Bloc porque era el estándar de facto cuando arranqué el proyecto:
+mucha documentación, patrón claro (eventos → estados), y fácil de justificar en una entrevista o
+en una revisión de código en equipo. Año y medio después, con la app en producción y trabajando
+solo, migré la mayor parte a Riverpod. No fue un rewrite completo ni una decisión ideológica —
+fue una respuesta a fricciones concretas que se acumularon con el tiempo.
+
+## La fricción que no vi venir con Bloc
+
+Bloc está diseñado, en parte, para que el flujo de datos sea explícito y auditable en equipos
+grandes: cada cambio de estado pasa por un evento nombrado, cada Bloc tiene un contrato claro. Ese
+mismo diseño, trabajando solo, se convirtió en una capa de ceremonia que yo mismo tenía que
+mantener sincronizada sin que nadie más se beneficiara de la auditoría extra.
+
+<RealDataBadge label="Medido en mi propio código, no en un benchmark" />
+
+El síntoma concreto: para añadir un campo nuevo a un formulario con validación reactiva, tocaba
+cuatro archivos (evento, estado, bloc, y el widget). Con Riverpod, la misma tarea se reduce a un
+provider y el widget que lo consume — dos archivos, a veces uno.
+
+## Qué mantuve de la arquitectura original
+
+No tiré la separación domain/data/presentation que ya tenía (ver el artículo sobre arquitectura
+Clean feature-first) — esa parte funcionaba bien independientemente del gestor de estado. Lo que
+cambié fue exclusivamente la capa de presentation: los Blocs se convirtieron en `Notifier`s de
+Riverpod, y los `BlocBuilder` en `ConsumerWidget`/`ref.watch`.
+
+```dart
+// Antes: Bloc
+class PaywallBloc extends Bloc<PaywallEvent, PaywallState> {
+  PaywallBloc(this._repository) : super(PaywallInitial()) {
+    on<LoadPaywall>(_onLoadPaywall);
+  }
+  final PaywallRepository _repository;
+
+  Future<void> _onLoadPaywall(LoadPaywall event, Emitter<PaywallState> emit) async {
+    emit(PaywallLoading());
+    final offerings = await _repository.getOfferings();
+    emit(PaywallLoaded(offerings));
+  }
+}
+```
+
+```dart
+// Después: Riverpod (AsyncNotifier)
+class PaywallController extends AsyncNotifier<List<Offering>> {
+  @override
+  Future<List<Offering>> build() => ref.read(paywallRepositoryProvider).getOfferings();
+}
+
+final paywallControllerProvider =
+    AsyncNotifierProvider<PaywallController, List<Offering>>(PaywallController.new);
+```
+
+El segundo bloque no solo tiene menos líneas — también obtiene gratis los estados de loading/error
+que en Bloc tenía que modelar yo mismo como clases (`PaywallLoading`, `PaywallError`,
+`PaywallLoaded`).
+
+## Cómo migré sin parar de desarrollar
+
+<RealDataBadge label="Estrategia real usada en MiApp Pro" />
+
+No migré todo de una vez. Riverpod y Bloc convivieron durante casi dos meses en el mismo proyecto:
+migraba una feature completa (domain, data y presentation de esa feature) cada vez que la tocaba
+por otra razón (un bug, una mejora), en vez de dedicar un sprint entero a la migración. Esto
+significó mantener ambas dependencias en `pubspec.yaml` durante ese tiempo, lo cual es un coste
+real pero pequeño comparado con parar el desarrollo de producto para un rewrite arquitectónico.
+
+## Lo que NO mejoró
+
+Es importante ser honesto sobre esto: la migración no redujo bugs de forma medible ni mejoró el
+rendimiento percibido de la app — los usuarios no notaron ningún cambio, porque no debían
+notarlo. La ganancia fue exclusivamente mía, en velocidad de desarrollo y menos código que
+mantener. Si tu prioridad es la auditabilidad estricta del flujo de datos (por ejemplo, porque vas
+a sumar gente al equipo pronto), Bloc sigue siendo una opción razonable — la ganancia de Riverpod
+es más clara cuanto más solo trabajás.
+
+## Cuándo NO haría esta migración
+
+Si el proyecto no tuviera ya una separación domain/data limpia, migrar el gestor de estado a mitad
+de camino habría sido mucho más arriesgado, porque el acoplamiento entre lógica de negocio y
+widgets habría hecho que cada cambio de Bloc a Riverpod arrastrara refactors de UI no relacionados.
+La lección real de esta migración no es "Riverpod es mejor que Bloc" — es que una buena separación
+de capas es lo que hizo posible cambiar de gestor de estado sin miedo.
+
+## Cómo decido hoy qué gestor de estado usar en un proyecto nuevo
+
+Para un proyecto nuevo que arranco solo, hoy elijo Riverpod por defecto y no me lo vuelvo a
+preguntar salvo que aparezca una razón concreta para lo contrario — por ejemplo, si sé de entrada
+que voy a sumar otro developer pronto y quiero un patrón más prescriptivo desde el día uno. La
+pregunta que me hago no es "¿qué librería es objetivamente mejor?" sino "¿cuántas personas van a
+tocar este código y qué tan explícito necesito que sea el contrato entre capas para ellas, no para
+mí?". Trabajando solo, ese contrato explícito lo llevo en la cabeza; en equipo, prefiero que viva
+en el código.
+
+También pesa el tamaño esperado del proyecto: para un MVP que puede no sobrevivir más de unos
+meses, la ceremonia de Bloc es un coste que no se amortiza. Para una app que sé que voy a mantener
+años (como la que migré), el cálculo cambia menos por el gestor de estado en sí y más por cuánto
+tiempo voy a estar yo solo tocando ese código sin ayuda de nadie más.

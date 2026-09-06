@@ -1,0 +1,102 @@
+---
+title: 'Testing en Flutter cuando programás solo: qué testeo de verdad y qué me parece perder el tiempo'
+description: >-
+  Sin un equipo de QA ni revisores de PR, la cobertura de tests no es un objetivo — es una
+  herramienta. Esto es lo que decido testear en mis apps y lo que dejo sin cubrir a propósito.
+pubDate: 2026-09-01
+tags: ['flutter', 'testing', 'arquitectura']
+hasFirstHandData: true
+affiliateLinks: false
+draft: false
+---
+
+import RealDataBadge from '../../components/RealDataBadge.astro';
+
+La mayoría de guías de testing en Flutter están escritas pensando en equipos: cobertura mínima
+exigida en CI, tests como documentación para otros developers, tests que evitan que un compañero
+rompa tu código sin darse cuenta. Trabajando solo, ninguna de esas razones aplica igual — y sin
+embargo sigo escribiendo tests, solo que no los mismos que escribiría en equipo.
+
+## Por qué sigo testeando sin tener revisores
+
+<RealDataBadge label="Basado en mi propio historial de bugs en producción" />
+
+El argumento que sí se sostiene programando solo: los tests son la única red de seguridad que
+tengo antes de que un bug llegue a producción. No hay un segundo par de ojos revisando mi PR. Los
+bugs que más me han costado arreglar en producción no fueron errores de UI (esos los ves con
+solo abrir la app) — fueron errores de lógica de negocio silenciosos: un cálculo de entitlement
+que no expira bien, una condición de carrera en un stream de Firestore. Esa categoría de bug es
+exactamente la que un test bien puesto en la capa `domain/` detecta antes de compilar la app.
+
+## Dónde concentro el esfuerzo de testing
+
+Sigo una regla simple, alineada con la arquitectura feature-first que uso (ver el artículo sobre
+Clean Architecture): la proporción de tests por capa es deliberadamente desigual.
+
+- **`domain/`**: cobertura casi total. Aquí vive el cálculo de entitlements, las reglas de pricing,
+  la lógica de validación — todo lo que, si se rompe, rompe silenciosamente sin que la UI avise.
+- **`data/`**: tests contra fakes/mocks de red, nunca contra servicios reales. El objetivo no es
+  probar que Firebase funciona (ya lo prueba Google), sino que mi código maneja bien sus
+  respuestas y errores.
+- **`presentation/`**: solo los flujos que, si se rompen, bloquean al usuario por completo —
+  login, flujo de compra. No testeo cada widget individual.
+
+```dart
+// domain/entitlement_test.dart — el tipo de test que sí escribo siempre
+test('un entitlement expirado no se considera activo aunque isPro sea true', () {
+  final entitlement = Entitlement(
+    isPro: true,
+    expiresAt: DateTime.now().subtract(const Duration(days: 1)),
+  );
+
+  expect(entitlement.isActive, isFalse);
+});
+```
+
+## Lo que dejo sin testear a propósito
+
+<RealDataBadge label="Decisión editorial basada en mi propio ritmo de shipping" />
+
+No escribo golden tests (comparación pixel a pixel de widgets) para pantallas que cambian de
+diseño con frecuencia — el coste de mantenerlos actualizados en una fase temprana de producto,
+donde la UI todavía cambia cada semana, supera el valor que aportan. Los añado más adelante, cuando
+una pantalla se estabiliza y dejo de tocar su diseño cada sprint.
+
+Tampoco persigo un número de cobertura global. Un 90% de cobertura repartido uniformemente entre
+`domain/`, `data/` y `presentation/` me daría una falsa sensación de seguridad si esa cobertura
+viene sobre todo de tests triviales en widgets que casi nunca se rompen, mientras la lógica de
+negocio real queda poco probada.
+
+## Integración con CI
+
+Corro los tests en cada push a través de GitHub Actions, pero no bloqueo el merge si baja la
+cobertura global — bloqueo solo si falla algún test existente. La razón: en un proyecto solo-dev,
+la fricción de un gate de cobertura estricto tiende a producir tests añadidos solo para subir el
+número, no tests que de verdad prueben algo.
+
+```yaml
+# .github/workflows/test.yml (fragmento)
+- name: Run tests
+  run: flutter test --reporter expanded
+```
+
+## El resultado, con honestidad
+
+Esto no elimina bugs en producción — sigo teniendo incidentes. Lo que cambió es la categoría de
+bug que llega a producción: casi nunca son ya errores de lógica de negocio en `domain/`, y casi
+siempre son casos de borde de UI o integraciones de terceros que ningún test unitario razonable
+habría detectado sin convertirse en una suite lenta y frágil de mantener yo solo.
+
+## Cuándo reviso esta regla
+
+Esta proporción de esfuerzo no es fija para siempre. La reviso cada vez que una categoría de bug
+que "no debería pasar" según mis reglas empieza a repetirse — por ejemplo, si un mismo tipo de
+error de `presentation/` aparece dos veces en producción, eso es una señal de que esa pantalla
+concreta necesita más cobertura, no de que toda la capa de presentación la necesita. Prefiero
+ajustar la regla caso por caso, con evidencia real de qué se rompió, en vez de subir un umbral
+global de cobertura que no distingue entre código crítico y código que casi nunca falla.
+
+Si en algún momento sumo a otra persona al proyecto, esta misma regla probablemente se vuelva más
+estricta en `presentation/`, porque ahí es donde más divergencia de estilo aparece entre dos
+developers distintos tocando el mismo código — pero esa es una decisión para cuando ese momento
+llegue, no una que tenga sentido anticipar hoy sin datos.
