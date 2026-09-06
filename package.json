@@ -27,9 +27,6 @@
     "tailwindcss": "^4.3.3",
     "wrangler": "^4.129.0"
   },
-  "allowScripts": {
-    "esbuild": true
-  },
   "devDependencies": {
     "@anthropic-ai/sdk": "^0.124.0",
     "@tailwindcss/typography": "^0.5.20",
