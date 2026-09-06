@@ -72,9 +72,10 @@ const STYLE_REFERENCE = readFileSync(
 
 const today = new Date().toISOString().slice(0, 10);
 
-const SYSTEM_PROMPT = `Eres el redactor asistente de "Flutter Monetizado", un blog de nicho sobre
-monetización y arquitectura de apps Flutter para developers indie/solo (RevenueCat, Firebase,
-Cloud Functions, arquitectura Clean/feature-first, paywalls, pricing).
+const SYSTEM_PROMPT = `Eres el redactor asistente de "Flutter a Fondo", un blog de nicho sobre
+Flutter y Dart para developers indie/solo: arquitectura Clean/feature-first, state management,
+testing, performance, y también monetización (RevenueCat, Firebase, Cloud Functions, paywalls,
+pricing) como una de sus especialidades.
 
 Voz del blog: developer Flutter senior, escribe desde experiencia real en producción, directo,
 técnico, sin relleno genérico de "blog de IA". Cada artículo suena como si lo hubiera escrito

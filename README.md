@@ -1,8 +1,9 @@
-# Flutter Monetizado — blog de nicho
+# Flutter a Fondo — blog de nicho
 
-Blog sobre monetización y arquitectura de apps Flutter para developers indie/solo (RevenueCat,
-Firebase, Cloud Functions, Clean/feature-first, paywalls, pricing). Contenido escrito/curado por un
-humano, asistido por IA, con revisión obligatoria antes de publicar.
+Blog sobre Flutter y Dart para developers indie/solo: arquitectura Clean/feature-first, state
+management, testing, performance, y monetización (RevenueCat, Firebase, Cloud Functions, paywalls,
+pricing). Contenido escrito/curado por un humano, asistido por IA, con revisión obligatoria antes
+de publicar.
 
 **Stack:** Astro (SSG) · Content Collections (Zod) · Tailwind CSS v4 · MDX · Cloudflare (Workers +
 static assets, sucesor de "Cloudflare Pages") · GitHub.
