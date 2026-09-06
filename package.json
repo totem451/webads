@@ -11,7 +11,8 @@
     "preview": "astro preview",
     "astro": "astro",
     "generate-types": "wrangler types",
-    "qa": "node scripts/qa-content.mjs"
+    "qa": "node scripts/qa-content.mjs",
+    "generate-draft": "node scripts/generate-draft.mjs"
   },
   "dependencies": {
     "@astrojs/cloudflare": "^14.3.0",
@@ -30,6 +31,7 @@
     "esbuild": true
   },
   "devDependencies": {
+    "@anthropic-ai/sdk": "^0.124.0",
     "@tailwindcss/typography": "^0.5.20",
     "gray-matter": "^4.0.3"
   }

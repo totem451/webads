@@ -43,6 +43,9 @@ src/
     rss.xml.js               # feed RSS
 scripts/
   qa-content.mjs            # QA de contenido, fuera del build (ver abajo)
+  generate-draft.mjs        # genera un borrador con Claude, usado por el workflow de GitHub Actions
+.github/workflows/
+  generate-draft.yml        # pipeline de generación de contenido asistido por IA (ver abajo)
 ```
 
 ## Escribir un post
@@ -93,6 +96,55 @@ Los problemas en posts con `draft: true` se listan como advertencias (no bloquea
 con código 1 si hay errores en posts publicados — pensado para engancharlo a un hook de pre-commit
 o a CI en el futuro, pero de momento se ejecuta manualmente.
 
+## Pipeline de generación de contenido asistido por IA
+
+Un workflow de GitHub Actions (`.github/workflows/generate-draft.yml`) genera un borrador de post
+con Claude a partir de un tema, y abre una Pull Request. **Nunca escribe en `main` directamente y
+nunca publica nada** — el resultado siempre lleva `draft: true`, sin excepción, y la PR trae un
+checklist de revisión humana obligatoria.
+
+### Configuración (una sola vez)
+
+1. Consigue una API key de Anthropic (console.anthropic.com).
+2. Añádela como secret del repo:
+   ```sh
+   gh secret set ANTHROPIC_API_KEY --repo totem451/webads
+   ```
+   (o desde GitHub: Settings → Secrets and variables → Actions → New repository secret).
+
+### Uso
+
+Desde la pestaña **Actions** del repo → "Generar borrador de post (IA)" → **Run workflow**, o por
+CLI:
+
+```sh
+gh workflow run generate-draft.yml \
+  --repo totem451/webads \
+  -f topic="Por qué migré de GetX a Riverpod en una app con 50k usuarios" \
+  -f tags="flutter,arquitectura" \
+  -f has_first_hand_data=true \
+  -f affiliate_links=false
+```
+
+El workflow:
+
+1. Llama a Claude (`scripts/generate-draft.mjs`) con un prompt que fija la voz del blog y, sobre
+   todo, **prohíbe inventar datos concretos**: donde el post necesitaría una cifra o resultado real,
+   el modelo debe escribir el marcador `[DATO PENDIENTE: ...]` en su lugar (mismo marcador que ya
+   busca `npm run qa`), y `TODO:` donde haga falta verificación humana.
+2. Fuerza `draft: true` en el frontmatter pase lo que pase (el script ignora cualquier intento del
+   modelo de ponerlo en `false`).
+3. Corre `npm run qa` en modo informativo (no bloquea la PR — los posts en draft solo generan
+   advertencias).
+4. Abre una PR con el archivo nuevo en `src/content/posts/`, etiquetada `content-draft` y
+   `needs-human-review`, con un checklist de qué revisar antes de quitar `draft: true`.
+
+También puedes correr el generador en local (por ejemplo para iterar el prompt):
+
+```sh
+ANTHROPIC_API_KEY=sk-... TOPIC="..." TAGS="flutter" npm run generate-draft
+```
+
 ## Sistema de diseño
 
 - **Paleta:** técnica oscura (zinc/slate) con acento índigo/azul (`accent-*` en
@@ -129,6 +181,8 @@ o a CI en el futuro, pero de momento se ejecuta manualmente.
       fechas de revisión, datos de contacto). La página de privacidad debería pasar por asesoría
       legal antes de publicar si vas a monetizar con AdSense/afiliados.
 - [ ] Borrar o reescribir los 4 posts de ejemplo en `src/content/posts/`.
+- [ ] Si vas a usar el pipeline de generación con IA: añadir el secret `ANTHROPIC_API_KEY` al repo
+      (ver sección "Pipeline de generación de contenido asistido por IA").
 
 ## Deploy en Cloudflare
 
@@ -144,6 +198,3 @@ npx wrangler deploy
 Alternativa sin tocar la terminal: conecta el repositorio de GitHub desde el dashboard de
 Cloudflare (Workers & Pages → Create → conectar repo), con build command `npm run build` y
 directorio de salida `dist` — Cloudflare hará build y deploy automático en cada push.
-
-**No implementado todavía (fase posterior, según lo acordado):** pipeline de generación de
-contenido asistido por IA vía GitHub Actions.

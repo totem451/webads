@@ -1,0 +1,93 @@
+name: Generar borrador de post (IA)
+
+# Pipeline de generación de contenido asistido por IA. SOLO genera un
+# borrador (draft: true) y abre una Pull Request — nunca escribe
+# directamente en main y nunca publica nada. La revisión y aprobación
+# humana antes de quitar `draft: true` sigue siendo obligatoria.
+on:
+  workflow_dispatch:
+    inputs:
+      topic:
+        description: 'Tema/ángulo del post a generar'
+        required: true
+        type: string
+      tags:
+        description: 'Tags separados por coma (ej. flutter,revenuecat)'
+        required: false
+        type: string
+        default: ''
+      has_first_hand_data:
+        description: '¿Vas a añadir un dato/captura real tuyo a este post?'
+        required: true
+        type: boolean
+        default: false
+      affiliate_links:
+        description: '¿Debe incluir una recomendación de afiliado (AffiliateCallout)?'
+        required: true
+        type: boolean
+        default: false
+      model:
+        description: 'ID del modelo de Claude a usar'
+        required: false
+        type: string
+        default: 'claude-opus-5'
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  generate-draft:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Generar borrador con Claude
+        id: generate
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          TOPIC: ${{ inputs.topic }}
+          TAGS: ${{ inputs.tags }}
+          HAS_FIRST_HAND_DATA: ${{ inputs.has_first_hand_data }}
+          AFFILIATE_LINKS: ${{ inputs.affiliate_links }}
+          MODEL: ${{ inputs.model }}
+        run: node scripts/generate-draft.mjs
+
+      - name: QA de contenido (informativo, no bloquea la PR)
+        run: npm run qa || true
+
+      - name: Abrir Pull Request
+        uses: peter-evans/create-pull-request@v7
+        with:
+          commit-message: "Borrador IA: ${{ steps.generate.outputs.title }}"
+          branch: "content/draft-${{ steps.generate.outputs.slug }}"
+          title: "[Borrador IA] ${{ steps.generate.outputs.title }}"
+          labels: |
+            content-draft
+            needs-human-review
+          body: |
+            Borrador generado automáticamente por el pipeline de IA a partir del tema:
+
+            > ${{ inputs.topic }}
+
+            **Antes de fusionar y publicar (obligatorio):**
+            - [ ] Leer el post completo y corregir cualquier imprecisión técnica.
+            - [ ] Sustituir cada marcador `[DATO PENDIENTE: ...]` por un dato real, o eliminar la
+                  afirmación si no lo tienes.
+            - [ ] Resolver cada marcador `TODO:`.
+            - [ ] Revisar que `hasFirstHandData`/`affiliateLinks` en el frontmatter reflejen la
+                  realidad del contenido final.
+            - [ ] Solo entonces, cambiar `draft: true` a `draft: false`.
+            - [ ] Ejecutar `npm run qa` en local y confirmar que pasa sin errores.
+
+            Archivo: `${{ steps.generate.outputs.path }}`
